@@ -1,6 +1,14 @@
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const getApiUrl = () => {
+    const url = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    if (url && !url.startsWith("http") && !url.includes("localhost")) {
+        return `https://${url}`;
+    }
+    return url;
+};
+
+const API_URL = getApiUrl();
 
 export const api = {
     getToken: () => localStorage.getItem("auth_token"),
