@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,33 +58,13 @@ const PatientDashboard = () => {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number, lng: number } | null>(null);
   const [locationAddress, setLocationAddress] = useState<string>('');
 
-  // Realtime subscription for appointments
+  // Placeholder for missing realtime - could use polling if needed
   useEffect(() => {
     if (!user) return;
-
-    const channel = supabase
-      .channel('patient-appointments-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'patient_appointments',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          queryClient.invalidateQueries({ queryKey: ['my-appointments'] });
-
-          if (payload.eventType === 'UPDATE' && (payload.new as any).status === 'confirmed' && (payload.old as any).status !== 'confirmed') {
-            toast.success('Great news! Your appointment has been confirmed.');
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['my-appointments'] });
+    }, 30000); // Poll every 30s
+    return () => clearInterval(interval);
   }, [user, queryClient]);
 
   useEffect(() => {
@@ -99,14 +79,7 @@ const PatientDashboard = () => {
   const { data: departments = [] } = useQuery({
     queryKey: ['public-departments'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('id, name')
-        .order('name');
-      if (error) {
-        console.error("Error fetching departments:", error);
-        throw error;
-      }
+      const { data } = await api.get('/api/departments');
       return data;
     },
   });
@@ -115,19 +88,10 @@ const PatientDashboard = () => {
   const { data: doctors = [] } = useQuery({
     queryKey: ['public-doctors', selectedDepartment],
     queryFn: async () => {
-      let query = supabase
-        .from('doctors')
-        .select('id, name, specialty, department_id')
-        .eq('available', true)
-        .order('name');
-
-      if (selectedDepartment && selectedDepartment !== 'all') {
-        query = query.eq('department_id', selectedDepartment);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      const url = selectedDepartment && selectedDepartment !== 'all'
+        ? `/api/doctors?departmentId=${selectedDepartment}`
+        : '/api/doctors';
+      return await api.get(url);
     },
   });
 
@@ -136,17 +100,7 @@ const PatientDashboard = () => {
     queryKey: ['my-appointments', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
-        .from('patient_appointments')
-        .select(`
-          *,
-          doctors:doctor_id(name, specialty),
-          departments:department_id(name)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data;
+      return await api.get('/api/appointments');
     },
     enabled: !!user,
   });
@@ -158,20 +112,17 @@ const PatientDashboard = () => {
         throw new Error('Please fill in all required fields');
       }
 
-      const { error } = await supabase.from('patient_appointments').insert({
-        user_id: user.id,
-        patient_name: patientName,
-        patient_phone: patientPhone,
-        patient_email: user.email,
-        doctor_id: selectedDoctor || null,
-        department_id: selectedDepartment || null,
-        preferred_date: format(appointmentDate, 'yyyy-MM-dd'),
-        preferred_time: appointmentTime || null,
-        appointment_type: appointmentType,
+      await api.post('/api/appointments', {
+        patientName,
+        patientPhone,
+        patientEmail: user.email,
+        doctorName: selectedDoctor || 'General',
+        department: selectedDepartment || null,
+        date: appointmentDate,
+        time: appointmentTime || null,
+        type: appointmentType,
         notes: appointmentNotes || null,
       });
-
-      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Appointment request submitted!');
@@ -198,47 +149,16 @@ const PatientDashboard = () => {
     mutationFn: async () => {
       let finalPhone = callbackPhone;
 
-      // If phone not provided, try to find it
-      if (!finalPhone && user?.id) {
-        // 1. Check patient_accounts
-        const { data: account } = await supabase
-          .from('patient_accounts')
-          .select('phone')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (account?.phone) {
-          finalPhone = account.phone;
-        } else {
-          // 2. Check recent appointments
-          const { data: lastApt } = await supabase
-            .from('patient_appointments')
-            .select('patient_phone')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (lastApt?.patient_phone) {
-            finalPhone = lastApt.patient_phone;
-          }
-        }
-      }
-
       if (!callbackName || !finalPhone) {
-        throw new Error('Please provide your name and a phone number (none found in records)');
+        throw new Error('Please provide your name and a phone number');
       }
 
-      const { error } = await supabase.from('callback_requests').insert({
-        user_id: user?.id || null,
-        name: callbackName,
+      await api.post('/api/callbacks', {
+        fullName: callbackName,
         phone: finalPhone,
-        email: callbackEmail || null,
-        preferred_time: callbackTime || null,
+        time: callbackTime || null,
         reason: callbackReason || null,
       });
-
-      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Callback request submitted! We will call you soon.');
@@ -370,7 +290,7 @@ const PatientDashboard = () => {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground hidden sm:inline">
-                Welcome, {user?.user_metadata?.full_name || user?.email}
+                Welcome, {user?.fullName || user?.email}
               </span>
               <Button variant="outline" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />

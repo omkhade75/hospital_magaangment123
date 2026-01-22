@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +20,7 @@ const PatientRegister = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!fullName.trim() || !email.trim() || !password.trim()) {
       toast.error('Please fill in all required fields');
       return;
@@ -38,34 +37,13 @@ const PatientRegister = () => {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName);
+    // role is 'patient' by default in our backend for /api/auth/register if role is not passed
+    const { error } = await signUp(email, password, fullName, 'patient');
 
     if (error) {
       setLoading(false);
       toast.error(error.message || 'Failed to register');
       return;
-    }
-
-    // Sign in immediately after registration
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError) {
-      setLoading(false);
-      toast.success('Registration successful! Please sign in.');
-      navigate('/patient/login');
-      return;
-    }
-
-    // Create patient account record
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from('patient_accounts').insert({
-        user_id: user.id,
-        phone: phone || null,
-      });
     }
 
     setLoading(false);

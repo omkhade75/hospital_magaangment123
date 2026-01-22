@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Heart, ArrowLeft, Stethoscope, Eye, EyeOff } from 'lucide-react';
+import { Heart, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
-const StaffLogin = () => {
+const PatientLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,81 +33,26 @@ const StaffLogin = () => {
       return;
     }
 
-    // Check if user has staff role
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      toast.error('Authentication failed');
-      return;
-    }
-
-    // Check for approved staff role
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (roleData) {
-      setLoading(false);
-      toast.success('Welcome back!');
-
-      // Redirect based on role
-      if (roleData.role === 'cashier' as any) {
-        navigate('/staff/dashboard/cashier');
-      } else if (roleData.role === 'nurse') {
-        navigate('/staff/dashboard/nurse');
-      } else if (roleData.role === 'doctor') {
-        navigate('/staff/dashboard/doctor');
-      } else if (roleData.role === 'receptionist') {
-        navigate('/staff/dashboard/reception');
-      } else {
-        navigate('/dashboard'); // Default fallback
-      }
-      return;
-    }
-
-    // Check if they have a pending approval request
-    const { data: approvalData } = await supabase
-      .from('staff_approval_requests')
-      .select('status')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
     setLoading(false);
-
-    if (approvalData) {
-      if (approvalData.status === 'pending') {
-        toast.info('Your staff access request is pending approval.');
-        navigate('/staff/pending');
-        return;
-      } else if (approvalData.status === 'rejected') {
-        toast.error('Your staff access request was rejected.');
-        await supabase.auth.signOut();
-        return;
-      }
-    }
-
-    // User is not staff - redirect to patient portal
-    toast.info('You do not have staff access. Redirecting to patient portal...');
+    toast.success('Welcome back!');
     navigate('/patient/dashboard');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-green-600 mb-4 justify-center">
+          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-primary mb-4 justify-center">
             <ArrowLeft className="h-4 w-4" />
             Back to Portal Selection
           </Link>
           <div className="flex items-center justify-center gap-2 mb-2">
-            <img src="/logo.png" alt="Medicare Logo" className="h-8 w-8 object-contain" />
-            <span className="text-2xl font-bold text-green-600">Staff Portal</span>
+            <Heart className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold text-primary">MediCare</span>
           </div>
-          <CardTitle className="text-2xl">Staff Sign In</CardTitle>
+          <CardTitle className="text-2xl">Patient Sign In</CardTitle>
           <CardDescription>
-            Access the Hospital Management System
+            Access your patient portal
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -118,7 +62,7 @@ const StaffLogin = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your staff email"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -149,13 +93,13 @@ const StaffLogin = () => {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
             <p className="text-sm text-muted-foreground text-center">
-              Need staff access?{' '}
-              <Link to="/staff/register" className="text-green-600 hover:underline">
-                Request access here
+              Don't have an account?{' '}
+              <Link to="/patient/register" className="text-primary hover:underline">
+                Register here
               </Link>
             </p>
           </CardFooter>
@@ -165,4 +109,4 @@ const StaffLogin = () => {
   );
 };
 
-export default StaffLogin;
+export default PatientLogin;

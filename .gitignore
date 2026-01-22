@@ -11,6 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.vercel
+.sqlite
+backend/database.sqlite
+frontend/dist
+frontend/node_modules
+backend/node_modules
+backend/dist
+backend/.env
+frontend/.env
 
 # Editor directories and files
 .vscode/*

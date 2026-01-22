@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { api } from "@/services/api";
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -66,25 +66,13 @@ const PortalSelect = () => {
         throw new Error('Please provide your name and phone number');
       }
 
-      // Bypass RLS by using the Edge Function to insert
-      // The Edge Function runs with Service Role privileges
-      const { data, error } = await supabase.functions.invoke('vapi-callback-request', {
-        body: {
-          name: callbackName,
-          phone: callbackPhone,
-          email: callbackEmail || null,
-          preferred_time: callbackTime || null,
-          reason: callbackReason || null,
-        }
+      const data = await api.post('/api/callbacks', {
+        fullName: callbackName,
+        phone: callbackPhone,
+        time: callbackTime || null,
+        reason: callbackReason || null,
       });
 
-      if (error) {
-        console.error("Function Error:", error);
-        throw new Error(error.message || 'Failed to submit request');
-      }
-
-      // If the function handles everything (insert + call), we are good.
-      // The function returns 'ok: true' or similar on success, maybe the call details?
       return data;
     },
     onSuccess: () => {
@@ -100,6 +88,20 @@ const PortalSelect = () => {
       toast.error(error.message);
     },
   });
+
+  // Test Local Backend Connection
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        await api.get('/');
+        console.log("Connected to Local Backend!");
+        // Optional: toast.success("Connected to Local SQLite Backend");
+      } catch (e) {
+        console.error("Backend connection failed", e);
+      }
+    };
+    testConnection();
+  }, []);
 
   // Hardcoded doctors for display
   const doctors = [
