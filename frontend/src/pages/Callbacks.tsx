@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,9 +21,15 @@ const CallbacksPage = () => {
   const { data: callbacks = [], isLoading } = useQuery({
     queryKey: ['callback-requests', statusFilter],
     queryFn: async () => {
-      // In a real app, you'd filter on the backend.
-      // For now, we fetch all and filter client-side if needed, or update backend to support it.
-      return await api.get('/api/callbacks');
+      let query = supabase.from('callback_requests').select('*');
+
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -38,7 +44,8 @@ const CallbacksPage = () => {
   // Update status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      await api.post(`/api/callbacks/${id}/status`, { status });
+      const { error } = await supabase.from('callback_requests').update({ status }).eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Callback status updated');

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,13 +66,15 @@ const PortalSelect = () => {
         throw new Error('Please provide your name and phone number');
       }
 
-      const data = await api.post('/api/callbacks', {
-        fullName: callbackName,
+      const { data, error } = await supabase.from('callback_requests').insert({
+        name: callbackName,
         phone: callbackPhone,
-        time: callbackTime || null,
+        preferred_time: callbackTime || null,
         reason: callbackReason || null,
+        status: 'pending'
       });
 
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
@@ -89,19 +91,7 @@ const PortalSelect = () => {
     },
   });
 
-  // Test Local Backend Connection
-  useEffect(() => {
-    const testConnection = async () => {
-      try {
-        await api.get('/');
-        console.log("Connected to Local Backend!");
-        // Optional: toast.success("Connected to Local SQLite Backend");
-      } catch (e) {
-        console.error("Backend connection failed", e);
-      }
-    };
-    testConnection();
-  }, []);
+  // Removed local backend connection test as it's no longer used
 
   // Hardcoded doctors for display
   const doctors = [

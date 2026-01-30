@@ -21,9 +21,9 @@ interface SpeechRecognitionEvent extends Event {
 }
 
 interface SpeechRecognition extends EventTarget {
-  onstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
-  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => unknown) | null;
+  onstart: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => void) | null;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => void) | null;
   start: () => void;
   stop: () => void;
 }
@@ -79,6 +79,7 @@ const MayaChatbot = () => {
       }
 
       if (voice) utterance.voice = voice;
+      // If specific language voice not found, it will use default, which is acceptable fallback
 
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
@@ -137,8 +138,9 @@ const MayaChatbot = () => {
       });
     });
 
-    vapi.on("error", () => {
+    vapi.on("error", (err: unknown) => {
       setIsCallActive(false);
+      // Fail silently or toast
     });
 
     return () => {
@@ -311,7 +313,7 @@ const MayaChatbot = () => {
         const busyMsg = `Sorry, Dr. ${doctor.name} is currently unavailable/on leave. The next available slot is ${nextSlot}. Would you like to book that?`;
         return { found: true, message: busyMsg };
       }
-    } catch (err) {
+    } catch {
       return { found: false, message: "I'm having trouble connecting to the schedule database right now." };
     }
   };
@@ -351,7 +353,7 @@ const MayaChatbot = () => {
         speak(responseText);
       }, 800);
 
-    } catch (error) {
+    } catch {
       setIsLoading(false);
     }
   };
