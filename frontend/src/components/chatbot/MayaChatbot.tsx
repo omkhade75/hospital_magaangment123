@@ -502,7 +502,7 @@ const MayaChatbot = () => {
 
           {messages.length > 2 && (
             <a
-              href="https://wa.me/3135409338"
+              href={`https://wa.me/${(import.meta.env.VITE_HOSPITAL_PHONE_NUMBER || "").replace(/[^0-9]/g, "") || "911234567890"}`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-center gap-2 w-full mb-3 py-2 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200"
