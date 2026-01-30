@@ -105,7 +105,7 @@ const AddAppointmentModal = ({ open, onOpenChange, selectedDate }: AddAppointmen
 
       form.reset();
       onOpenChange(false);
-    } catch (error) {
+    } catch {
       toast({
         title: "Booking Failed",
         description: "MAYA: I couldn't confirm this slot. Please try another time.",

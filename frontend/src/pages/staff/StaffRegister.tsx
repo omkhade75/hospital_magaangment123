@@ -72,7 +72,7 @@ const StaffRegister = () => {
           user_id: user.id,
           email: email,
           full_name: fullName,
-          requested_role: requestedRole as any,
+          requested_role: requestedRole,
         });
         requestError = error;
 
@@ -91,7 +91,7 @@ const StaffRegister = () => {
             toast.info("Request submitted. Note: Cashier role requires admin database update, handled as Receptionist temporarily.");
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         requestError = err;
       }
 

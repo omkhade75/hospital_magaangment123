@@ -1,19 +1,20 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { api } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
-interface User {
-  id: number;
+interface AuthUser {
+  id: string;
   email: string;
   role: string;
   fullName: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ user: User | null, error: any }>;
-  signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ user: User | null, error: any }>;
-  signOut: () => void;
+  signIn: (email: string, password: string) => Promise<{ user: AuthUser | null, error: any }>;
+  signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ user: AuthUser | null, error: any }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,36 +32,46 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const formatUser = (supabaseUser: User): AuthUser => {
+    return {
+      id: supabaseUser.id,
+      email: supabaseUser.email || '',
+      role: (supabaseUser.user_metadata?.role as string) || 'patient',
+      fullName: (supabaseUser.user_metadata?.full_name as string) || '',
+    };
+  };
+
   useEffect(() => {
-    const checkUser = async () => {
-      const token = api.getToken();
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const userData = await api.get('/api/auth/me');
-        setUser(userData);
-      } catch (err) {
-        api.clearToken();
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+    // Check active sessions and sets the user
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ? formatUser(session.user) : null);
+      setLoading(false);
     };
 
-    checkUser();
+    getSession();
+
+    // Listen for changes on auth state (sign in, sign out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ? formatUser(session.user) : null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      const data = await api.post('/api/auth/login', { email, password });
-      api.setToken(data.token);
-      setUser(data.user);
-      return { user: data.user, error: null };
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      const formattedUser = data.user ? formatUser(data.user) : null;
+      return { user: formattedUser, error: null };
     } catch (err: any) {
       return { user: null, error: err };
     }
@@ -68,17 +79,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signUp = async (email: string, password: string, fullName: string, role = 'patient') => {
     try {
-      const data = await api.post('/api/auth/register', { email, password, fullName, role });
-      api.setToken(data.token);
-      setUser(data.user);
-      return { user: data.user, error: null };
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: role,
+          },
+        },
+      });
+      if (error) throw error;
+      const formattedUser = data.user ? formatUser(data.user) : null;
+      return { user: formattedUser, error: null };
     } catch (err: any) {
       return { user: null, error: err };
     }
   };
 
-  const signOut = () => {
-    api.clearToken();
+  const signOut = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 

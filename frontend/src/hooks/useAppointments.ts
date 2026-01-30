@@ -1,21 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface Appointment {
-  id: string;
-  patient_id: string;
-  doctor_id: string;
-  appointment_date: string;
-  appointment_time: string;
-  duration: number;
-  type: string;
-  status: string;
-  notes: string | null;
-  created_at: string;
-  patients?: { name: string; patient_id: string };
-  doctors?: { name: string; specialty: string };
-}
+export type Appointment = Tables<"appointments"> & {
+  patients: { name: string; patient_id: string } | null;
+  doctors: { name: string; specialty: string } | null;
+};
 
 export interface CreateAppointmentData {
   patient_id: string;
@@ -40,11 +31,11 @@ export const useAppointments = (date?: string) => {
           doctors (name, specialty)
         `)
         .order("appointment_time");
-      
+
       if (date) {
         query = query.eq("appointment_date", date);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data as Appointment[];
@@ -54,7 +45,7 @@ export const useAppointments = (date?: string) => {
 
 export const useCreateAppointment = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (appointment: CreateAppointmentData) => {
       const { data, error } = await supabase
@@ -77,7 +68,7 @@ export const useCreateAppointment = () => {
 
 export const useUpdateAppointment = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Appointment> & { id: string }) => {
       const { data, error } = await supabase
@@ -101,7 +92,7 @@ export const useUpdateAppointment = () => {
 
 export const useDeleteAppointment = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("appointments").delete().eq("id", id);

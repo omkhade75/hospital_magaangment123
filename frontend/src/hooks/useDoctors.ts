@@ -1,21 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface Doctor {
-  id: string;
-  name: string;
-  specialty: string;
-  experience: string | null;
-  rating: number;
-  total_patients: number;
-  phone: string | null;
-  email: string | null;
-  available: boolean;
-  department_id: string | null;
-  created_at: string;
-  schedule?: any;
-}
+export type Doctor = Tables<"doctors">;
 
 export interface CreateDoctorData {
   name: string;

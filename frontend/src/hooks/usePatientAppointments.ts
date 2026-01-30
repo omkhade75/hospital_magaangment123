@@ -1,25 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface PatientAppointment {
-  id: string;
-  user_id: string;
-  patient_name: string;
-  patient_phone: string;
-  patient_email: string | null;
-  doctor_id: string | null;
-  department_id: string | null;
-  preferred_date: string;
-  preferred_time: string | null;
-  appointment_type: string;
-  notes: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  doctors?: { name: string; specialty: string } | null;
-  departments?: { name: string } | null;
-}
+export type PatientAppointment = Tables<"patient_appointments"> & {
+  doctors: { name: string; specialty: string } | null;
+  departments: { name: string } | null;
+};
 
 export const usePatientAppointments = () => {
   return useQuery({

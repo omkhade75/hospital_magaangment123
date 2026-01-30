@@ -14,12 +14,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'starhospital_secret_key_123';
 app.use(cors());
 app.use(express.json());
 
-// SQLite Connection
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: path.join(__dirname, 'database.sqlite'),
-    logging: false
-});
+// Database Connection
+const dbDialect = process.env.DB_DIALECT || 'sqlite';
+let sequelize;
+
+if (dbDialect === 'mysql') {
+    sequelize = new Sequelize(
+        process.env.DB_NAME || 'starhospital',
+        process.env.DB_USER || 'root',
+        process.env.DB_PASS || '',
+        {
+            host: process.env.DB_HOST || 'localhost',
+            port: process.env.DB_PORT || 3306,
+            dialect: 'mysql',
+            logging: false
+        }
+    );
+} else {
+    sequelize = new Sequelize({
+        dialect: 'sqlite',
+        storage: path.join(__dirname, process.env.DB_FILE_PATH || 'database.sqlite'),
+        logging: false
+    });
+}
 
 // Models
 const User = sequelize.define('User', {
@@ -74,7 +91,7 @@ const Doctor = sequelize.define('Doctor', {
 (async () => {
     try {
         await sequelize.authenticate();
-        console.log('SQLite Connection established.');
+        console.log(`${dbDialect.toUpperCase()} Connection established.`);
         await sequelize.sync({ alter: true });
         console.log('Database synced.');
 

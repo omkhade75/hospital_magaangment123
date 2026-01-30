@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -25,7 +24,7 @@ import {
     FormMessage,
     FormDescription,
 } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 
 const claimSchema = z.object({
@@ -81,7 +80,6 @@ const InsuranceClaimForm = () => {
             if (error) {
                 // If table doesn't exist, we fallback to a mock success for the demo
                 if (error.code === '42P01') { // undefined_table
-                    console.warn("Table insurance_claims does not exist, mocking success");
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     return;
                 }
@@ -97,8 +95,7 @@ const InsuranceClaimForm = () => {
             });
             form.reset();
         },
-        onError: (error: Error) => {
-            console.error(error);
+        onError: () => {
             toast({
                 title: "Submission Pending",
                 description: "We've received your data locally. (Backend table might be missing)",

@@ -61,7 +61,7 @@ const StaffApprovals = () => {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user.id) // Get notifications for current admin
+        .eq('user_id', user.id.toString()) // Get notifications for current admin
         .eq('type', 'permission_request')
         .order('created_at', { ascending: false });
 
@@ -77,7 +77,7 @@ const StaffApprovals = () => {
       // First create the user role
       const { error: roleError } = await supabase.from('user_roles').insert({
         user_id: request.user_id,
-        role: request.requested_role as any,
+        role: request.requested_role,
       });
       if (roleError) throw roleError;
 
@@ -86,7 +86,7 @@ const StaffApprovals = () => {
         .from('staff_approval_requests')
         .update({
           status: 'approved',
-          reviewed_by: user?.id,
+          reviewed_by: user?.id.toString(),
           reviewed_at: new Date().toISOString(),
         })
         .eq('id', request.id);
@@ -108,7 +108,7 @@ const StaffApprovals = () => {
         .from('staff_approval_requests')
         .update({
           status: 'rejected',
-          reviewed_by: user?.id,
+          reviewed_by: user?.id.toString(),
           reviewed_at: new Date().toISOString(),
           rejection_reason: reason,
         })
@@ -140,7 +140,7 @@ const StaffApprovals = () => {
       toast.success("Request processed");
       queryClient.invalidateQueries({ queryKey: ['change-requests'] });
     },
-    onError: (error: any) => {
+    onError: () => {
       toast.error("Failed to process request");
     }
   });

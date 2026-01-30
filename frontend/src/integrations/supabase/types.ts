@@ -558,6 +558,107 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          id: string
+          amount: number
+          description: string | null
+          patient_name: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          amount: number
+          description?: string | null
+          patient_name?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          amount?: number
+          description?: string | null
+          patient_name?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      insurance_claims: {
+        Row: {
+          id: string
+          provider: string
+          policy_number: string
+          patient_name: string
+          diagnosis: string
+          amount: number
+          status: string
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          provider: string
+          policy_number: string
+          patient_name: string
+          diagnosis: string
+          amount: number
+          status?: string
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          provider?: string
+          policy_number?: string
+          patient_name?: string
+          diagnosis?: string
+          amount?: number
+          status?: string
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      medical_reports: {
+        Row: {
+          id: string
+          patient_id: string
+          report_type: string
+          title: string
+          description: string | null
+          file_url: string
+          uploaded_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          report_type: string
+          title: string
+          description?: string | null
+          file_url: string
+          uploaded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          report_type?: string
+          title?: string
+          description?: string | null
+          file_url?: string
+          uploaded_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_reports_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -603,7 +704,7 @@ export type Database = {
       is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "doctor" | "nurse" | "receptionist"
+      app_role: "admin" | "doctor" | "nurse" | "receptionist" | "cashier"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -731,7 +832,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "doctor", "nurse", "receptionist"],
+      app_role: ["admin", "doctor", "nurse", "receptionist", "cashier"],
     },
   },
 } as const

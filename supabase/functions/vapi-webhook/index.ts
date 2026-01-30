@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0?target=deno";
+import { createClient } from "@supabase/supabase-js";
 declare const Deno: {
     env: {
         get(key: string): string | undefined;

@@ -34,12 +34,12 @@ const Header = ({ title, subtitle }: HeaderProps) => {
     queryFn: async () => {
       if (!user) return null;
 
-      const roles = ['admin', 'doctor', 'nurse', 'receptionist', 'cashier'];
+      const roles = ['admin', 'doctor', 'nurse', 'receptionist', 'cashier'] as const;
 
       for (const role of roles) {
         const { data } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: role as any
+          _user_id: user.id.toString(),
+          _role: role
         });
         if (data) return role;
       }
@@ -70,8 +70,7 @@ const Header = ({ title, subtitle }: HeaderProps) => {
   };
 
   const getDisplayName = () => {
-    const fullName = user?.user_metadata?.full_name;
-    if (fullName) return fullName;
+    if (user?.fullName) return user.fullName;
     if (user?.email) return user.email.split("@")[0];
     return "User";
   };

@@ -24,8 +24,8 @@ const Settings = () => {
 
     useEffect(() => {
         if (user) {
-            setDisplayName(user.user_metadata?.full_name || "");
-            setAvatarUrl(user.user_metadata?.avatar_url || "");
+            setDisplayName(user.fullName || "");
+            setAvatarUrl(""); // Custom backend User doesn't seem to have avatarUrl in interface
             checkUserRole();
         }
     }, [user]);
@@ -35,7 +35,7 @@ const Settings = () => {
         const { data } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', user.id)
+            .eq('user_id', user.id.toString())
             .maybeSingle();
         if (data) setUserRole(data.role);
     };
@@ -68,8 +68,9 @@ const Settings = () => {
             if (error) throw error;
 
             toast.success("Profile updated successfully!");
-        } catch (error: any) {
-            toast.error(error.message || "Failed to update profile");
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to update profile";
+            toast.error(message);
         } finally {
             setLoading(false);
         }

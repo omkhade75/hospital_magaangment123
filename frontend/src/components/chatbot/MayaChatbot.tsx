@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Bot, User, Loader2, Mic, Volume2, Phone, PhoneCall } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { X, Send, Bot, User, Mic, Volume2, Phone, PhoneCall } from "lucide-react";
 import Vapi from "@vapi-ai/web";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,9 +21,9 @@ interface SpeechRecognitionEvent extends Event {
 }
 
 interface SpeechRecognition extends EventTarget {
-  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+  onstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => unknown) | null;
   start: () => void;
   stop: () => void;
 }
@@ -55,11 +55,42 @@ const MayaChatbot = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId] = useState(() => `session-${crypto.randomUUID()}`);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [bookingState, setBookingState] = useState<{ step: 'none' | 'doctor_name'; data?: unknown }>({ step: 'none' });
+  const [language, setLanguage] = useState<"en" | "hi" | "mr">("en");
+  const [isCallActive, setIsCallActive] = useState(false);
+  const vapiRef = useRef<Vapi | null>(null);
+
+  const speak = useCallback((text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Cancel any current speech
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+
+      let voice = null;
+      if (language === 'hi') {
+        voice = voices.find(v => v.lang.includes('hi') || v.name.includes('Hindi'));
+      } else if (language === 'mr') {
+        voice = voices.find(v => v.lang.includes('mr') || v.name.includes('Marathi'));
+      } else {
+        voice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English'));
+      }
+
+      if (voice) utterance.voice = voice;
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    } else {
+      toast({
+        title: "Text-to-Speech not supported",
+        description: "Your browser doesn't support voice output.",
+        variant: "destructive"
+      });
+    }
+  }, [language, toast]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -67,9 +98,6 @@ const MayaChatbot = () => {
     }
   }, [messages]);
 
-  const [language, setLanguage] = useState<"en" | "hi" | "mr">("en");
-
-  // Listen for Maya Notifications from other components
   useEffect(() => {
     const handleMayaNotification = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -79,18 +107,13 @@ const MayaChatbot = () => {
       setMessages((prev) => [...prev, newMessage]);
 
       if (detail.message) {
-        // Tiny delay to ensure speech starts after open
         setTimeout(() => speak(detail.message), 500);
       }
     };
 
     window.addEventListener('maya-notification', handleMayaNotification);
     return () => window.removeEventListener('maya-notification', handleMayaNotification);
-  }, []);
-
-  // Vapi Integration
-  const [isCallActive, setIsCallActive] = useState(false);
-  const vapiRef = useRef<any>(null);
+  }, [speak]);
 
   useEffect(() => {
     const vapi = new Vapi(import.meta.env.VITE_VAPI_PUBLIC_KEY || "demo-key");
@@ -98,7 +121,7 @@ const MayaChatbot = () => {
 
     vapi.on("call-start", () => {
       setIsCallActive(true);
-      setIsSpeaking(false); // Stop browser TTS if running
+      setIsSpeaking(false);
       window.speechSynthesis.cancel();
       toast({
         title: "Call Started",
@@ -114,19 +137,18 @@ const MayaChatbot = () => {
       });
     });
 
-    vapi.on("error", (e: unknown) => {
-      console.error(e);
+    vapi.on("error", () => {
       setIsCallActive(false);
     });
 
     return () => {
       vapi.stop();
     };
-  }, []);
+  }, [toast]);
 
   const toggleVapiCall = () => {
     if (isCallActive) {
-      vapiRef.current.stop();
+      vapiRef.current?.stop();
     } else {
       const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID;
       const publicKey = import.meta.env.VITE_VAPI_PUBLIC_KEY;
@@ -140,7 +162,6 @@ const MayaChatbot = () => {
         return;
       }
 
-      // Multilingual System Prompt
       const systemPrompt = `You are Maya, the intelligent AI receptionist for Star Hospital (Medicare).
       Context: You are talking to a patient via the hospital website.
       
@@ -163,9 +184,10 @@ const MayaChatbot = () => {
       Important: Keep responses concise and helpful. Do not mention you are an AI unnecessarily, just help the user.`;
 
       if (assistantId && assistantId !== "your_vapi_assistant_id_here") {
-        // Start with ID and Override Prompt for languages
-        vapiRef.current.start(assistantId, {
+        vapiRef.current?.start(assistantId, {
           model: {
+            provider: "openai",
+            model: "gpt-4o-mini",
             messages: [
               {
                 role: "system",
@@ -175,8 +197,7 @@ const MayaChatbot = () => {
           }
         });
       } else {
-        // Transient Assistant (Fallback if no ID)
-        vapiRef.current.start({
+        vapiRef.current?.start({
           name: "Maya Web",
           firstMessage: "Hello, I am Maya from Star Hospital. How can I help you regarding your health today?",
           transcriber: {
@@ -203,41 +224,6 @@ const MayaChatbot = () => {
     }
   };
 
-  // Don't render chatbot if user is not authenticated
-  if (!user) {
-    return null;
-  }
-
-  const speak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Cancel any current speech
-      const utterance = new SpeechSynthesisUtterance(text);
-      const voices = window.speechSynthesis.getVoices();
-
-      let voice = null;
-      if (language === 'hi') {
-        voice = voices.find(v => v.lang.includes('hi') || v.name.includes('Hindi'));
-      } else if (language === 'mr') {
-        voice = voices.find(v => v.lang.includes('mr') || v.name.includes('Marathi'));
-      } else {
-        voice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English'));
-      }
-
-      if (voice) utterance.voice = voice;
-      // If specific language voice not found, it will use default, which is acceptable fallback
-
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
-    } else {
-      toast({
-        title: "Text-to-Speech not supported",
-        description: "Your browser doesn't support voice output.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -259,14 +245,9 @@ const MayaChatbot = () => {
     }
   };
 
-
-
-
-
   const getResponse = (input: string, lang: "en" | "hi" | "mr") => {
     const lowerInput = input.toLowerCase();
 
-    // DICTIONARY FOR RESPONSES
     const responses = {
       en: {
         greeting: "Hello! I'm Maya, your Medicare assistant. How can I help you regarding your health or our hospital services today?",
@@ -320,21 +301,17 @@ const MayaChatbot = () => {
         return { found: false, message: "I couldn't find a doctor by that name. Please check the spelling or try another name." };
       }
 
-      const doctor = doctors[0]; // Take the first match
+      const doctor = doctors[0];
 
       if (doctor.available) {
-        // Simulate confirming appointment
-        // In a real app, we would ask for date/time and insert into 'appointments' table
         const confirmationMsg = `Great news! Dr. ${doctor.name} is available. Your appointment has been confirmed for the next available slot.`;
         return { found: true, message: confirmationMsg };
       } else {
-        // Suggest next slot (Mock logic)
-        const nextSlot = "tomorrow at 10:00 AM"; // Mock
+        const nextSlot = "tomorrow at 10:00 AM";
         const busyMsg = `Sorry, Dr. ${doctor.name} is currently unavailable/on leave. The next available slot is ${nextSlot}. Would you like to book that?`;
         return { found: true, message: busyMsg };
       }
-
-    } catch (e) {
+    } catch (err) {
       return { found: false, message: "I'm having trouble connecting to the schedule database right now." };
     }
   };
@@ -349,17 +326,14 @@ const MayaChatbot = () => {
     setInput("");
     setIsLoading(true);
 
-    // AI/Logic Processing
     try {
       let responseText = "";
 
-      // Check if we are in a booking flow
       if (bookingState.step === 'doctor_name') {
         const result = await processDoctorSearch(trimmedInput);
         responseText = result.message;
-        setBookingState({ step: 'none' }); // Reset after attempt
+        setBookingState({ step: 'none' });
       } else {
-        // Standard Response Check
         const initialResponse = getResponse(trimmedInput, language);
 
         if (initialResponse === "APPOINTMENT_TRIGGER") {
@@ -378,7 +352,6 @@ const MayaChatbot = () => {
       }, 800);
 
     } catch (error) {
-      console.error(error);
       setIsLoading(false);
     }
   };
@@ -390,9 +363,12 @@ const MayaChatbot = () => {
     }
   };
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <>
-      {/* Chat Toggle Button */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -408,17 +384,14 @@ const MayaChatbot = () => {
         )}
       </Button>
 
-      {/* Chat Window */}
       <div
         className={cn(
           "fixed bottom-28 right-6 z-50 w-[380px] bg-card rounded-3xl shadow-2xl border border-border/50 overflow-hidden transition-all duration-500 origin-bottom-right backdrop-blur-xl",
           isOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-10 pointer-events-none"
         )}
       >
-        {/* Header */}
         <div className="bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30 backdrop-blur-md shadow-inner relative overflow-hidden group">
-            {/* Simple CSS animated face */}
             <div className="w-full h-full flex items-center justify-center relative">
               <div className="w-2 h-2 bg-white rounded-full absolute left-3 top-4 animate-blink"></div>
               <div className="w-2 h-2 bg-white rounded-full absolute right-3 top-4 animate-blink"></div>
@@ -445,7 +418,6 @@ const MayaChatbot = () => {
           </div>
         </div>
 
-        {/* Messages */}
         <ScrollArea className="h-[400px] p-4 bg-muted/30" ref={scrollRef}>
           <div className="space-y-4">
             {messages.map((message, index) => (
@@ -495,8 +467,6 @@ const MayaChatbot = () => {
           </div>
         </ScrollArea>
 
-
-        {/* Suggestions */}
         <div className="px-4 py-2 bg-background flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
           {[
             "Book Appointment",
@@ -517,7 +487,6 @@ const MayaChatbot = () => {
           ))}
         </div>
 
-        {/* Whatsapp & Input */}
         <div className="p-4 bg-background border-t border-border pt-2">
           {import.meta.env.VITE_VAPI_PHONE_NUMBER_ID && import.meta.env.VITE_HOSPITAL_PHONE_NUMBER && (
             <div className="mb-3 p-2 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-3 text-xs text-blue-800">

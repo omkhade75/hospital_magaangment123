@@ -12,16 +12,16 @@ const CashierDashboard = () => {
         queryKey: ['cashier-stats'],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from('transactions' as any)
+                .from('transactions')
                 .select('amount, created_at');
 
-            if (error) return { total: 0, today: 0, count: 0 };
+            if (error || !data) return { total: 0, today: 0, count: 0 };
 
-            const total = (data as any[]).reduce((sum, t) => sum + Number(t.amount), 0);
-            const today = new Date().toISOString().split('T')[0];
-            const todayTotal = (data as any[])
-                .filter(t => t.created_at.startsWith(today))
-                .reduce((sum, t) => sum + Number(t.amount), 0);
+            const total = data.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+            const todayDate = new Date().toISOString().split('T')[0];
+            const todayTotal = data
+                .filter(t => t.created_at?.startsWith(todayDate))
+                .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
             return { total, today: todayTotal, count: data.length };
         }

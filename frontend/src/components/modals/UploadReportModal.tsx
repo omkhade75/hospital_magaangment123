@@ -38,7 +38,7 @@ const uploadSchema = z.object({
     report_type: z.string().min(1, "Report type is required"),
     title: z.string().min(3, "Title is required"),
     description: z.string().optional(),
-    file: z.any().optional(), // In real app, validate file
+    file: z.unknown().optional(), // In real app, validate file
 });
 
 type UploadFormData = z.infer<typeof uploadSchema>;
@@ -78,7 +78,7 @@ const UploadReportModal = ({ open, onOpenChange, patientId, patientName, default
 
             // await supabase.storage.from('reports').upload(filePath, file);
 
-            const { error } = await supabase.from('medical_reports' as any).insert({
+            const { error } = await supabase.from('medical_reports').insert({
                 patient_id: data.patient_id,
                 report_type: data.report_type,
                 title: data.title,
@@ -89,7 +89,6 @@ const UploadReportModal = ({ open, onOpenChange, patientId, patientName, default
 
             if (error) {
                 if (error.code === '42P01') { // undefined_table
-                    console.warn("Table medical_reports does not exist, mocking success");
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     return;
                 }
@@ -105,9 +104,8 @@ const UploadReportModal = ({ open, onOpenChange, patientId, patientName, default
             onOpenChange(false);
             form.reset();
         },
-        onError: (error: Error) => {
+        onError: () => {
             // Mock success if backend fail due to missing table for prototype
-            console.error(error);
             toast({
                 title: "Upload Successful (Simulation)",
                 description: "Report metadata saved locally.",

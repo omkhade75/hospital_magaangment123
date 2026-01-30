@@ -3,19 +3,18 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  useNotifications, 
-  useUnreadNotificationsCount, 
+import {
+  useNotifications,
+  useUnreadNotificationsCount,
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
   useDeleteNotification,
-  Notification 
+  Notification
 } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";

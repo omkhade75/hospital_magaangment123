@@ -1,24 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface Patient {
-  id: string;
-  patient_id: string;
-  name: string;
-  age: number;
-  gender: string;
-  phone: string | null;
-  email: string | null;
-  address: string | null;
-  condition: string | null;
-  status: string;
-  room: string | null;
-  department_id: string | null;
-  doctor_id: string | null;
-  admitted_at: string | null;
-  created_at: string;
-}
+export type Patient = Tables<"patients">;
 
 export interface CreatePatientData {
   name: string;
@@ -50,7 +35,7 @@ export const usePatients = () => {
 
 export const useCreatePatient = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (patient: CreatePatientData) => {
       const { data, error } = await supabase
@@ -73,7 +58,7 @@ export const useCreatePatient = () => {
 
 export const useUpdatePatient = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Patient> & { id: string }) => {
       const { data, error } = await supabase
@@ -97,7 +82,7 @@ export const useUpdatePatient = () => {
 
 export const useDeletePatient = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("patients").delete().eq("id", id);

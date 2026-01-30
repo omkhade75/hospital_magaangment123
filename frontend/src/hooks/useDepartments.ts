@@ -1,17 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface Department {
-  id: string;
-  name: string;
-  head_doctor: string | null;
-  total_beds: number;
-  occupied_beds: number;
-  doctors_count: number;
-  nurses_count: number;
-  created_at: string;
-}
+export type Department = Tables<"departments">;
 
 export interface CreateDepartmentData {
   name: string;
@@ -37,7 +29,7 @@ export const useDepartments = () => {
 
 export const useCreateDepartment = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (department: CreateDepartmentData) => {
       const { data, error } = await supabase
@@ -60,7 +52,7 @@ export const useCreateDepartment = () => {
 
 export const useDeleteDepartment = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase

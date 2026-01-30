@@ -33,7 +33,7 @@ const AICalculator = () => {
             // Find patient transactions
             // Note: In a real app we might match by ID, but requirement says "whose name is asked"
             const { data, error } = await supabase
-                .from('transactions' as any)
+                .from('transactions')
                 .select('*')
                 .ilike('patient_name', `%${patientName}%`)
                 .returns<Transaction[]>();
@@ -55,7 +55,6 @@ const AICalculator = () => {
             toast.success("Calculation complete!");
 
         } catch (error: unknown) {
-            console.error("Calculation error:", error);
             toast.error("Failed to calculate amount");
         } finally {
             setLoading(false);

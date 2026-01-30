@@ -55,7 +55,7 @@ const SetScheduleModal = ({ open, onOpenChange, doctor }: SetScheduleModalProps)
                     if (schedule.start) setStartTime(schedule.start);
                     if (schedule.end) setEndTime(schedule.end);
                     if (schedule.days) setSelectedDays(schedule.days);
-                } catch (e) {
+                } catch {
                     resetDefaults();
                 }
             } else {
@@ -76,7 +76,7 @@ const SetScheduleModal = ({ open, onOpenChange, doctor }: SetScheduleModalProps)
         const { data } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', user.id)
+            .eq('user_id', user.id.toString())
             .maybeSingle();
         if (data) setUserRole(data.role);
     };
@@ -106,7 +106,6 @@ const SetScheduleModal = ({ open, onOpenChange, doctor }: SetScheduleModalProps)
                 end: endTime
             };
 
-            console.log("Saving schedule:", scheduleData);
 
             await updateDoctor.mutateAsync({
                 id: doctor.id,
@@ -118,9 +117,8 @@ const SetScheduleModal = ({ open, onOpenChange, doctor }: SetScheduleModalProps)
                 description: `Updated availability for ${doctor.name}`
             });
             onOpenChange(false);
-        } catch (error: any) {
-            console.error("Update failed:", error);
-            const message = error.message || "Failed to update schedule";
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to update schedule";
 
             // Fallback: If 'schedule' column doesn't exist yet, try updating ONLY availability
             if (userRole !== 'receptionist') {
@@ -134,8 +132,8 @@ const SetScheduleModal = ({ open, onOpenChange, doctor }: SetScheduleModalProps)
                     });
                     onOpenChange(false);
                     return;
-                } catch (retryError) {
-                    console.error("Retry failed:", retryError);
+                } catch {
+                    // Retry failed silently
                 }
             }
 

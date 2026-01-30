@@ -53,7 +53,7 @@ const PermissionRequestModal = ({ open, onOpenChange, action }: PermissionReques
                 message: `${user?.email || 'A user'} requests to ${action}. Reason: ${reason}`,
                 type: "permission_request",
                 entity_type: "request",
-                entity_id: user?.id,
+                entity_id: user?.id.toString(),
                 is_read: false
             }));
 
@@ -68,9 +68,9 @@ const PermissionRequestModal = ({ open, onOpenChange, action }: PermissionReques
             });
             onOpenChange(false);
             setReason("");
-        } catch (error: any) {
-            console.error("Request failed:", error);
-            toast.error("Failed to send request", { description: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to send request";
+            toast.error("Failed to send request", { description: message });
         } finally {
             setLoading(false);
         }

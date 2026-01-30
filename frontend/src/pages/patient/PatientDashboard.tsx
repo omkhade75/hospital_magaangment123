@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { api } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,8 +79,9 @@ const PatientDashboard = () => {
   const { data: departments = [] } = useQuery({
     queryKey: ['public-departments'],
     queryFn: async () => {
-      const { data } = await api.get('/api/departments');
-      return data;
+      const { data, error } = await supabase.from('departments').select('*');
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -88,10 +89,13 @@ const PatientDashboard = () => {
   const { data: doctors = [] } = useQuery({
     queryKey: ['public-doctors', selectedDepartment],
     queryFn: async () => {
-      const url = selectedDepartment && selectedDepartment !== 'all'
-        ? `/api/doctors?departmentId=${selectedDepartment}`
-        : '/api/doctors';
-      return await api.get(url);
+      let query = supabase.from('doctors').select('*');
+      if (selectedDepartment && selectedDepartment !== 'all') {
+        query = query.eq('department_id', selectedDepartment);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -100,7 +104,12 @@ const PatientDashboard = () => {
     queryKey: ['my-appointments', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      return await api.get('/api/appointments');
+      const { data, error } = await supabase
+        .from('patient_appointments')
+        .select('*, doctors(name, specialty)')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!user,
   });
@@ -112,17 +121,20 @@ const PatientDashboard = () => {
         throw new Error('Please fill in all required fields');
       }
 
-      await api.post('/api/appointments', {
-        patientName,
-        patientPhone,
-        patientEmail: user.email,
-        doctorName: selectedDoctor || 'General',
-        department: selectedDepartment || null,
-        date: appointmentDate,
-        time: appointmentTime || null,
-        type: appointmentType,
+      const { error } = await supabase.from('patient_appointments').insert({
+        user_id: user.id,
+        patient_name: patientName,
+        patient_phone: patientPhone,
+        patient_email: user.email,
+        doctor_id: selectedDoctor || null,
+        department_id: selectedDepartment || null,
+        preferred_date: appointmentDate.toISOString(),
+        preferred_time: appointmentTime || null,
+        appointment_type: appointmentType,
         notes: appointmentNotes || null,
+        status: 'pending'
       });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Appointment request submitted!');
@@ -153,12 +165,15 @@ const PatientDashboard = () => {
         throw new Error('Please provide your name and a phone number');
       }
 
-      await api.post('/api/callbacks', {
-        fullName: callbackName,
+      const { error } = await supabase.from('callback_requests').insert({
+        user_id: user?.id,
+        name: callbackName,
         phone: finalPhone,
-        time: callbackTime || null,
+        preferred_time: callbackTime || null,
         reason: callbackReason || null,
+        status: 'pending'
       });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Callback request submitted! We will call you soon.');

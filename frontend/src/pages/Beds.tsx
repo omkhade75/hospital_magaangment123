@@ -104,8 +104,8 @@ const Beds = () => {
                 bed_type: "Standard",
                 status: "Available"
             });
-        } catch (error) {
-            console.error(error);
+        } catch {
+            toast.error("Failed to create bed");
         }
     };
 

@@ -13,9 +13,10 @@ import { FileText, Pill, CreditCard, Download, Activity, Clock } from "lucide-re
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { Tables } from "@/integrations/supabase/types";
 
 interface PatientDetailsModalProps {
-    patient: any;
+    patient: Tables<"patients"> | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
@@ -74,7 +75,7 @@ const PatientDetailsModal = ({ patient, open, onOpenChange }: PatientDetailsModa
                                 <CardContent>
                                     <p className="text-lg font-semibold">{patient.condition || "Not recorded"}</p>
                                     <p className="text-sm text-muted-foreground mt-1">
-                                        Admitted: {patient.admission_date ? format(new Date(patient.admission_date), 'PPP') : 'N/A'}
+                                        Admitted: {patient.admitted_at ? format(new Date(patient.admitted_at), 'PPP') : 'N/A'}
                                     </p>
                                 </CardContent>
                             </Card>

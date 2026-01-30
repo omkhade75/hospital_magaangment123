@@ -2,18 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: "info" | "warning" | "success" | "error";
-  entity_type: string | null;
-  entity_id: string | null;
-  is_read: boolean;
-  created_at: string;
-  user_id: string | null;
-}
+export type Notification = Tables<"notifications">;
 
 export const useNotifications = () => {
   const queryClient = useQueryClient();

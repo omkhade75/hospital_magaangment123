@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, Plus, MoreHorizontal, Phone, Mail, FileText, Trash2, Loader2 } from "lucide-react";
-import { usePatients, useDeletePatient } from "@/hooks/usePatients";
+import { usePatients, useDeletePatient, Patient } from "@/hooks/usePatients";
 import AddPatientModal from "@/components/modals/AddPatientModal";
 import PatientDetailsModal from "@/components/modals/PatientDetailsModal";
 import UploadReportModal from "@/components/modals/UploadReportModal";
@@ -45,7 +45,7 @@ const Patients = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
 

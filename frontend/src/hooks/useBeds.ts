@@ -1,24 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface Bed {
-    id: string;
-    bed_number: string;
-    room_number: string;
-    department_id: string;
-    patient_id: string | null;
-    status: string | null;
-    bed_type: string | null;
-    created_at: string;
-    updated_at: string;
-    departments?: {
-        name: string;
-    };
-    patients?: {
-        name: string;
-    };
-}
+export type Bed = Tables<"beds"> & {
+    departments: { name: string } | null;
+    patients: { name: string } | null;
+};
 
 export type CreateBedData = {
     bed_number: string;

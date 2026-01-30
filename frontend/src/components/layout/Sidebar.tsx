@@ -38,7 +38,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     queryFn: async () => {
       if (!user) return false;
       const { data, error } = await supabase.rpc('has_role', {
-        _user_id: user.id,
+        _user_id: user.id.toString(),
         _role: 'admin'
       });
       if (error) return false;
@@ -53,7 +53,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     queryFn: async () => {
       if (!user) return false;
       const { data, error } = await supabase.rpc('has_role', {
-        _user_id: user.id,
+        _user_id: user.id.toString(),
         _role: 'nurse'
       });
       if (error) return false;
@@ -68,8 +68,8 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     queryFn: async () => {
       if (!user) return false;
       const { data, error } = await supabase.rpc('has_role', {
-        _user_id: user.id,
-        _role: 'cashier' as any
+        _user_id: user.id.toString(),
+        _role: 'cashier'
       });
       if (error) return false;
       return data;
@@ -83,7 +83,7 @@ const Sidebar = ({ className, onLinkClick }: SidebarProps) => {
     queryFn: async () => {
       if (!user) return false;
       const { data, error } = await supabase.rpc('has_role', {
-        _user_id: user.id,
+        _user_id: user.id.toString(),
         _role: 'receptionist'
       });
       if (error) return false;

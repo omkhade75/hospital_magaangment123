@@ -254,6 +254,7 @@ const App = () => (
               <Route path="/social-coming-soon" element={<ComingSoon />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <MayaChatbot />
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
